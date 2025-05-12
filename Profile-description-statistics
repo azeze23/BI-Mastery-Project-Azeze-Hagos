@@ -1,0 +1,101 @@
+WITH 
+joined_tables AS (
+  SELECT 
+    s.user_id AS u_id,
+    s.session_id,
+    s.trip_id AS s_trip_id,
+    s.cancellation,
+    s.flight_discount_amount,
+    s.hotel_discount_amount,
+    s.flight_booked,
+    s.hotel_booked,
+    u.has_children,
+  	u.birthdate,
+  	u.gender,
+  	DATE_PART('year', AGE(u.birthdate)) AS age,
+    h.nights,
+    h.rooms,
+    h.check_in_time,
+    h.check_out_time,
+    h.hotel_per_room_usd,
+    f.checked_bags,
+    f.base_fare_usd,
+    -- Calculated columns
+    CASE
+      WHEN h.check_out_time::date - h.check_in_time::date < 1 
+        THEN 1 
+        ELSE h.check_out_time::date - h.check_in_time::date 
+    END AS nights_new,
+    CASE 
+      WHEN h.rooms = 0 THEN 1 
+      ELSE h.rooms 
+    END AS new_rooms
+  FROM sessions s
+  LEFT JOIN users u ON s.user_id = u.user_id
+  LEFT JOIN hotels h ON s.trip_id = h.trip_id
+  LEFT JOIN flights f ON s.trip_id = f.trip_id
+  WHERE s.session_start >= '2023-01-04'
+),
+
+user_level AS (
+  SELECT
+    u_id AS ul_id
+  FROM joined_tables
+  GROUP BY u_id
+  HAVING COUNT(session_id) > 7
+),
+
+user_metrics AS (
+  SELECT 
+    jt.u_id,
+    COUNT(DISTINCT jt.s_trip_id) AS total_trips,
+    ROUND(AVG(COALESCE(jt.nights_new, 0)), 2) AS avg_stay_length,
+    ROUND(AVG(COALESCE(jt.checked_bags, 0)), 2) AS avg_checked_bags,
+    ROUND(COUNT(*) FILTER (WHERE jt.cancellation = true) * 1.0 / COUNT(*), 2) AS cancellation_rate,
+    SUM(COALESCE(jt.base_fare_usd, 0) + COALESCE(jt.hotel_per_room_usd, 0) * COALESCE(jt.new_rooms, 0) * COALESCE(jt.nights_new, 0)) AS total_spend,
+    ROUND(AVG(COALESCE(jt.flight_discount_amount, 0)), 2) AS avg_flight_discount_used,
+    ROUND(AVG(COALESCE(jt.hotel_discount_amount, 0)), 2) AS avg_hotel_discount_used,
+    ROUND(COUNT(*) FILTER (WHERE jt.flight_booked OR jt.hotel_booked) * 1.0 / COUNT(*), 2) AS booking_rate,
+    MAX(CASE WHEN jt.has_children THEN 1 ELSE 0 END) AS child_flag,
+    MAX(jt.age) AS age,
+    MAX(jt.gender) AS gender
+
+  FROM joined_tables jt
+  JOIN user_level ul ON jt.u_id = ul.ul_id
+  GROUP BY jt.u_id
+)
+
+-- Profiling of user behavior metrics
+SELECT 
+  ROUND(MIN(avg_checked_bags)::numeric, 2) AS min_bags,
+  ROUND(MAX(avg_checked_bags)::numeric, 2) AS max_bags,
+  ROUND(AVG(avg_checked_bags)::numeric, 2) AS avg_bags,
+
+  ROUND(MIN(cancellation_rate)::numeric, 2) AS min_cancel,
+  ROUND(MAX(cancellation_rate)::numeric, 2) AS max_cancel,
+  ROUND(AVG(cancellation_rate)::numeric, 2) AS avg_cancel,
+
+  ROUND(MIN(avg_stay_length)::numeric, 2) AS min_stay,
+  ROUND(MAX(avg_stay_length)::numeric, 2) AS max_stay,
+  ROUND(AVG(avg_stay_length)::numeric, 2) AS avg_stay,
+
+  ROUND(MIN(total_spend)::numeric, 2) AS min_spend,
+  ROUND(MAX(total_spend)::numeric, 2) AS max_spend,
+  ROUND(AVG(total_spend)::numeric, 2) AS avg_spend,
+
+  ROUND(MIN(booking_rate)::numeric, 2) AS min_booking,
+  ROUND(MAX(booking_rate)::numeric, 2) AS max_booking,
+  ROUND(AVG(booking_rate)::numeric, 2) AS avg_booking,
+  
+  ROUND(MIN(total_trips)::numeric, 2) AS min_trips,
+	ROUND(MAX(total_trips)::numeric, 2) AS max_trips,
+	ROUND(AVG(total_trips)::numeric, 2) AS avg_trips,
+
+  ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY avg_flight_discount_used)::numeric, 2) AS p25_flight_discount,
+  ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY avg_flight_discount_used)::numeric, 2) AS p50_flight_discount,
+  ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY avg_flight_discount_used)::numeric, 2) AS p75_flight_discount,
+
+  ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY avg_hotel_discount_used)::numeric, 2) AS p25_hotel_discount,
+  ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY avg_hotel_discount_used)::numeric, 2) AS p50_hotel_discount,
+  ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY avg_hotel_discount_used)::numeric, 2) AS p75_hotel_discount
+FROM user_metrics;
