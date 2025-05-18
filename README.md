@@ -15,4 +15,4 @@ Outcome:
 
 
 ## Tableau Dashboard
-[ViewTRAVELTideDashboardonTableau(https://public.tableau.com/views/Visualisation_Mastery_Project/TravelTideCustomerRewardsInsights?:language=enGB&publish=yes%D)&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+[ViewTRAVELTideDashboardonTableau](https://public.tableau.com/views/Visualisation_Mastery_Project/TravelTideCustomerRewardsInsights?:language=enGB&publish=yes%D)&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
