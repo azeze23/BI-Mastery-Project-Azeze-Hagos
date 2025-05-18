@@ -16,4 +16,4 @@ Outcome:
 
 ## Tableau Dashboard
 
-[View TRAVELTide Dashboard on Tableau](https://public.tableau.com/views/Visualisation_Mastery_Project/TravelTideCustomerRewardsInsights?:language=en-GB&publish=yes%5D)&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+[View TRAVELTide Dashboard on Tableau](https://public.tableau.com/views/Visualisation_Mastery_Project/TravelTideCustomerRewardsInsights?:language=enGB&publish=yes%5D)&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
