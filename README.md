@@ -15,4 +15,5 @@ Outcome:
 
 
 ## Tableau Dashboard
-[View TRAVELTide Dashboard on Tableau]
+[![TravelTide Dashboard](https://img.shields.io/badge/View-Dashboard-blue)](https://public.tableau.com/views/Visualisation_Mastery_Project/TravelTideCustomerRewardsInsights?:language=enGB&publish=yes&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+
